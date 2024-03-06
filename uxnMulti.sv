@@ -1,6 +1,7 @@
 module uxnProcessor (
     input logic clk,
     input logic rst,
+    input logic [15:0] instruction,     // For testing purposes
     output logic [15:0] data_out
 );
 
@@ -9,10 +10,9 @@ module uxnProcessor (
         INIT,
         FETCH,
         DECODE,
-        EXECUTE,
         STACK_OP,
         MEMORY_OP,
-        CONTROL_FLOW,
+        EXECUTE,
         WRITE_BACK
     } cpu_state_t;
 
@@ -49,6 +49,7 @@ module uxnProcessor (
 
     // EXECUTE registers
     logic [4:0] ALUResult;  // 5 bits for now
+    assign data_out = ALUResult;
 
     // Sequential block for state transitions and synchronous operations
     always_ff @(posedge clk or posedge rst) begin
@@ -67,9 +68,9 @@ module uxnProcessor (
                     SP <= 0;
                     ZF <= 0;
                 FETCH:
-                   IR <= memory[PC];  // Fetch instruction
-//                DECODE:
-                      // Decode is handled in combinational logic
+                    IR <= instruction;
+                //    IR <= memory[PC];  // Fetch instruction
+                DECODE:     // Decode is handled in combinational logic
                 STACK_OP:
                     case (IR[15:15-OPCODEWIDTH])
                         ADD, SUB, MUL, DIV, MOD, AND, OR, XOR: begin
@@ -78,8 +79,8 @@ module uxnProcessor (
                         NOT:
                             SP <= SP +1;
                     endcase
-//                MEMORY_OP:     // Not implemented yet
-//                EXECUTE:   // Execute is handled in combinational logic
+                MEMORY_OP:  // Not implemented yet
+                EXECUTE:    // Execute is handled in combinational logic
                 WRITE_BACK:
                     case (IR[15:15-OPCODEWIDTH])
                         ADD, SUB, MUL, DIV, MOD, AND, OR, XOR, NOT:
@@ -113,48 +114,36 @@ module uxnProcessor (
                         stack[SP] = operandA;
                 endcase
                 nextState = EXECUTE;
-            MEMORY_OP: 
-                // Read from memory if needed
+            MEMORY_OP:      // Read from memory if needed
             EXECUTE:
                 case (IR[15:15-OPCODEWIDTH])
-                    ADD:
-                        ALUResult = stack[SP-2] + stack[SP-1];
-                          // Pop one operand off the stack, then write back to one
+                    ADD:    // Pop one operand off the stack, then write back to one
+                        ALUResult = stack[SP-2] + stack[SP-1];  
                         nextState = WRITE_BACK;
                     SUB:
                         stack[SP-2] = stack[SP-2] - stack[SP-1];
-                    MUL:
-                        // Multiply top two stack values
+                    MUL:    // Multiply top two stack values
                         ALUResult = stack[SP-2] * stack[SP-1];
-                    DIV:
-                        // Divide, ensure divisor is not zero
-                        if (stack[SP-1] != 0) {
+                    DIV:    // Divide, ensure divisor is not zero
+                        if (stack[SP-1] != 0) begin
                             ALUResult = stack[SP-2] / stack[SP-1];
-                        } else {
-                            // Handle division by zero
+                        end else begin    // Handle division by zero
                             ALUResult = X;
-                        }
-                    MOD:
-                        // Modulo operation, ensure divisor is not zero
-                        if (stack[SP-1] != 0) {
+                        end
+                    MOD:    // Modulo operation, ensure divisor is not zero
+                        if (stack[SP-1] != 0) begin
                             ALUResult = stack[SP-2] % stack[SP-1];
-                        } else {
-                            // Handle modulo by zero
+                        end else begin    // Handle modulo by zero
                             ALUResult = X;
-                        }
-                    AND:
-                        // Bitwise AND top two stack values
+                        end
+                    AND:    // Bitwise AND top two stack values 
                         ALUResult = stack[SP-2] & stack[SP-1];
-                    OR:
-                        // Bitwise OR top two stack values
+                    OR:     // Bitwise OR top two stack values
                         ALUResult = stack[SP-2] | stack[SP-1];
-                    XOR:
-                        // Bitwise XOR top two stack values
+                    XOR:    // Bitwise XOR top two stack values
                         ALUResult = stack[SP-2] ^ stack[SP-1];
-                    NOT:
-                        // Bitwise NOT top stack value
+                    NOT:    // Bitwise NOT top stack value
                         ALUResult = ~stack[SP-1];
-                        // Stack pointer remains unchanged
                 endcase
                 nextStae = WRITE_BACK;
             WRITE_BACK:
