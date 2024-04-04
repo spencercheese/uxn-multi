@@ -24,8 +24,8 @@ module uxnProcessor (
 
     // Stack Registers
     logic [7:0] SP;  // Stack Pointer
-    logic [INSTRUCTIONWIDTH -OPCODEWIDTH -1:0] workingStack [0:255];  // Working Stack(Moves positively)
-    logic [INSTRUCTIONWIDTH -OPCODEWIDTH -1:0] returnStack [0:255];  // Return Stack(Moves positively)
+    logic [INSTRUCTIONWIDTH -OPCODEWIDTH -1:0] workingStack [255:0];  // Working Stack(Moves positively)
+    logic [INSTRUCTIONWIDTH -OPCODEWIDTH -1:0] returnStack [255:0];  // Return Stack(Moves positively)
 
     // Control Signals and State
     cpuState state, nextState;
@@ -71,76 +71,209 @@ module uxnProcessor (
                 // end
                 EXECUTE: begin    // ALU is handled in combinational logic
                     case (opcode)
-                        BRK:    // Ends the evalutation of the current vector. This opcode has no modes.
+                        BRK:    begin  // Ends the evalutation of the current vector. This opcode has no modes.
                             ;
-                        INC:    // Increments the value at the top of the stack, by 1.
+                        end
+                        INC:    begin  // Increments the value at the top of the stack, by 1.
                             ;
-                        POP:    // Removes the value at the top of the stack.
+                        end
+                        POP:    begin  // Removes the value at the top of the stack.
                             SP <= SP - 8'b1;
-                        NIP:    // Removes the second value from the stack. This is practical to convert a short into a byte.
+                        end
+                        NIP:    begin  // Removes the second value from the stack. This is practical to convert a short into a byte.
                             SP <= SP - 8'b1;
-                        SWP:    // Exchanges the first and second values at the top of the stack.
+                        end
+                        SWP:    begin  // Exchanges the first and second values at the top of the stack.
                             ;
-                        ROT:    // Rotates three values at the top of the stack, to the left, wrapping around.
+                        end
+                        ROT:    begin  // Rotates three values at the top of the stack, to the left, wrapping around.
                             ;
-                        DUP:    // Duplicates the value at the top of the stack.
+                        end
+                        DUP:    begin  // Duplicates the value at the top of the stack.
                             SP <= SP + 8'b1;
-                        OVR:    // Duplicates the second value at the top of the stack.
+                        end
+                        OVR:    begin  // Duplicates the second value at the top of the stack.
                             SP <= SP + 8'b1;
-                        EQU:    // Pushes 01 to the stack if the two values at the top of the stack are equal, 00 otherwise.
+                        end
+                        EQU:    begin  // Pushes 01 to the stack if the two values at the top of the stack are equal, 00 otherwise.
                             SP <= SP + 8'b1;
-                        NEQ:    // Pushes 01 to the stack if the two values at the top of the stack are not equal, 00 otherwise.
+                        end
+                        NEQ:    begin  // Pushes 01 to the stack if the two values at the top of the stack are not equal, 00 otherwise.
                             SP <= SP + 8'b1;
-                        GTH:    // Pushes 01 to the stack if the second value at the top of the stack is greater than the value at the top of the stack, 00 otherwise.
+                        end
+                        GTH:    begin  // Pushes 01 to the stack if the second value at the top of the stack is greater than the value at the top of the stack, 00 otherwise.
                             SP <= SP + 8'b1;
-                        LTH:    // Pushes 01 to the stack if the second value at the top of the stack is lesser than the value at the top of the stack, 00 otherwise.
+                        end
+                        LTH:    begin  // Pushes 01 to the stack if the second value at the top of the stack is lesser than the value at the top of the stack, 00 otherwise.
                             SP <= SP + 8'b1;
-                        JMP:    // Moves the PC by a relative distance equal to the signed byte on the top of the stack, or to an absolute address in short mode.
+                        end
+                        JMP:    begin  // Moves the PC by a relative distance equal to the signed byte on the top of the stack, or to an absolute address in short mode.
+                            SP <= SP - 8'b1;
+                        end
+                        JCN:    begin  // If the byte preceeding the address is not 00, moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
                             ;
-                        JCN:    // If the byte preceeding the address is not 00, moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
+                        end
+                        JSR:    begin  // Pushes the PC to the return-stack and moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
                             ;
-                        JSR:    // Pushes the PC to the return-stack and moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
-                            ;
-                        STH:    // Moves the value at the top of the stack to the return stack. Note that with the r-mode, the stacks are exchanged and the value is moved from the return stack to the working stack.
+                        end
+                        STH:    begin  // Moves the value at the top of the stack to the return stack. Note that with the r-mode, the stacks are exchanged and the value is moved from the return stack to the working stack.
                             SP <= SP + 8'b1;
+                        end
+                        LDZ:    begin  // Pushes the value at an address within the first 256 bytes of memory, to the top of the stack.
+                            SP <= SP + 8'b1;
+                        end
+                        STZ:    begin  // Writes a value to an address within the first 256 bytes of memory.
+                            ;
+                        end
+                        LDR:    begin  // Pushes a value at a relative address in relation to the PC, within a range between -128 and +127 bytes, to the top of the stack.
+                            SP <= SP + 8'b1;
+                        end
+                        STR:    begin  // Writes a value to a relative address in relation to the PC, within a range between -128 and +127 bytes.
+                            ;
+                        end
+                        LDA:    begin  // Pushes the value at a absolute address, to the top of the stack.
+                            SP <= SP + 8'b1;
+                        end
+                        STA:    begin  // Writes a value to a absolute address.
+                            ;
+                        end
+                        DEI:    begin  // Pushes a value from the device page, to the top of the stack. The target device might capture the reading to trigger an I/O event.
+                            SP <= SP + 8'b1;
+                        end
+                        DEO:    begin  // Writes a value to the device page. The target device might capture the writing to trigger an I/O event.
+                            ;
+                        end
+                        ADD:    begin  // Pushes the sum of the two values at the top of the stack.
+                            SP <= SP - 8'b1;
+                        end
+                        SUB:    begin  // Pushes the difference of the first value minus the second, to the top of the stack.
+                            SP <= SP - 8'b1;
+                        end
+                        MUL:    begin  // Pushes the product of the first and second values at the top of the stack.
+                            SP <= SP - 8'b1;
+                        end
+                        DIV:    begin  // Pushes the quotient of the first value over the second, to the top of the stack. A division by zero pushes zero on the stack. The rounding direction is toward zero.
+                            SP <= SP - 8'b1;
+                        end
+                        AND:    begin  // Pushes the result of the bitwise operation AND, to the top of the stack.
+                            SP <= SP - 8'b1;
+                        end
+                        ORA:    begin  // Pushes the result of the bitwise operation OR, to the top of the stack.
+                            SP <= SP - 8'b1;
+                        end
+                        EOR:    begin  // Pushes the result of the bitwise operation XOR, to the top of the stack.
+                            SP <= SP - 8'b1;
+                        end
+                        SFT:    begin  // Shifts the bits of the second value of the stack to the left or right, depending on the control value at the top of the stack. The high nibble of the control value indicates how many bits to shift left, and the low nibble how many bits to shift right. The rightward shift is done first.
+                            ;
+                        end
                     endcase
                 end
                 UPDATE: begin
                     case (opcode)
-                        BRK:    // Ends the evalutation of the current vector. This opcode has no modes.
+                        BRK:    begin  // Ends the evalutation of the current vector. This opcode has no modes.
                             ;
-                        INC:    // Increments the value at the top of the stack, by 1.
+                        end
+                        INC:    begin  // Increments the value at the top of the stack, by 1.
                             workingStack[SP -1] <= ALUResult;
-                        POP:    // Removes the value at the top of the stack.
+                        end
+                        POP:    begin  // Removes the value at the top of the stack.
                             ;
-                        NIP:    // Removes the second value from the stack. This is practical to convert a short into a byte.
+                        end
+                        NIP:    begin  // Removes the second value from the stack. This is practical to convert a short into a byte.
                             workingStack[SP -1] <= workingStack[SP];
-                        SWP:    // Exchanges the first and second values at the top of the stack.
+                        end
+                        SWP:    begin  // Exchanges the first and second values at the top of the stack.
                             // Need to test if this is fine!!!
                             workingStack[SP -1] <= workingStack[SP -2];
                             workingStack[SP -2] <= workingStack[SP -1];
-                        ROT:    // Rotates three values at the top of the stack, to the left, wrapping around.
-                            ;
-                        DUP:    // Duplicates the value at the top of the stack.
-                            workingStack[SP -1] <= workingStack[SP -2];
-                        OVR:    // Duplicates the second value at the top of the stack.
+                        end
+                        ROT:    begin  // Rotates three values at the top of the stack, to the left, wrapping around.
                             workingStack[SP -1] <= workingStack[SP -3];
-                        EQU:    // Pushes 01 to the stack if the two values at the top of the stack are equal, 00 otherwise.
+                            workingStack[SP -2] <= workingStack[SP -1];
+                            workingStack[SP -3] <= workingStack[SP -2];
+                        end
+                        DUP:    begin  // Duplicates the value at the top of the stack.
+                            workingStack[SP -1] <= workingStack[SP -2];
+                        end
+                        OVR:    begin  // Duplicates the second value at the top of the stack.
+                            workingStack[SP -1] <= workingStack[SP -3];
+                        end
+                        EQU:    begin  // Pushes 01 to the stack if the two values at the top of the stack are equal, 00 otherwise.
                             workingStack[SP -1] <= ALUResult;
-                        NEQ:    // Pushes 01 to the stack if the two values at the top of the stack are not equal, 00 otherwise.
+                        end
+                        NEQ:    begin  // Pushes 01 to the stack if the two values at the top of the stack are not equal, 00 otherwise.
                             workingStack[SP -1] <= ALUResult;
-                        GTH:    // Pushes 01 to the stack if the second value at the top of the stack is greater than the value at the top of the stack, 00 otherwise.
+                        end
+                        GTH:    begin  // Pushes 01 to the stack if the second value at the top of the stack is greater than the value at the top of the stack, 00 otherwise.
                             workingStack[SP -1] <= ALUResult;
-                        LTH:    // Pushes 01 to the stack if the second value at the top of the stack is lesser than the value at the top of the stack, 00 otherwise.
+                        end
+                        LTH:    begin  // Pushes 01 to the stack if the second value at the top of the stack is lesser than the value at the top of the stack, 00 otherwise.
                             workingStack[SP -1] <= ALUResult;
-                        JMP:    // Moves the PC by a relative distance equal to the signed byte on the top of the stack, or to an absolute address in short mode.
+                        end
+                        JMP:    begin  // Moves the PC by a relative distance equal to the signed byte on the top of the stack, or to an absolute address in short mode.
                             PC <= ALUResult;
-                        JCN:    // If the byte preceeding the address is not 00, moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
+                        end
+                        JCN:    begin  // If the byte preceeding the address is not 00, moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
                             ;
-                        JSR:    // Pushes the PC to the return-stack and moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
+                        end
+                        JSR:    begin  // Pushes the PC to the return-stack and moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
                             ;
-                        STH:    // Moves the value at the top of the stack to the return stack. Note that with the r-mode, the stacks are exchanged and the value is moved from the return stack to the working stack.
+                        end
+                        STH:    begin  // Moves the value at the top of the stack to the return stack. Note that with the r-mode, the stacks are exchanged and the value is moved from the return stack to the working stack.
                             ;
+                        end
+                        LDZ:    begin  // Pushes the value at an address within the first 256 bytes of memory, to the top of the stack.
+                            // workingStack[SP -1] <= memory[];
+                            ;
+                        end
+                        STZ:    begin  // Writes a value to an address within the first 256 bytes of memory.
+                            memory[] <= ;
+                        end
+                        LDR:    begin  // Pushes a value at a relative address in relation to the PC, within a range between -128 and +127 bytes, to the top of the stack.
+                            workingStack[SP -1] <= memory[PC +];
+                        end
+                        STR:    begin  // Writes a value to a relative address in relation to the PC, within a range between -128 and +127 bytes.
+                            // memory[PC +] <= ;
+                            ;
+                        end
+                        LDA:    begin  // Pushes the value at a absolute address, to the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        STA:    begin  // Writes a value to a absolute address.
+                            // memory[] <= ;
+                            ;
+                        end
+                        DEI:    begin  // Pushes a value from the device page, to the top of the stack. The target device might capture the reading to trigger an I/O event.
+                            ;
+                        end
+                        DEO:    begin  // Writes a value to the device page. The target device might capture the writing to trigger an I/O event.
+                            ;
+                        end
+                        ADD:    begin  // Pushes the sum of the two values at the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        SUB:    begin  // Pushes the difference of the first value minus the second, to the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        MUL:    begin  // Pushes the product of the first and second values at the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        DIV:    begin  // Pushes the quotient of the first value over the second, to the top of the stack. A division by zero pushes zero on the stack. The rounding direction is toward zero.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        AND:    begin  // Pushes the result of the bitwise operation AND, to the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        ORA:    begin  // Pushes the result of the bitwise operation OR, to the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        EOR:    begin  // Pushes the result of the bitwise operation XOR, to the top of the stack.
+                            workingStack[SP -1] <= ALUResult;
+                        end
+                        SFT:    begin  // Shifts the bits of the second value of the stack to the left or right, depending on the control value at the top of the stack. The high nibble of the control value indicates how many bits to shift left, and the low nibble how many bits to shift right. The rightward shift is done first.
+                            workingStack[SP -1] <= ALUResult;
+                        end
                     endcase
                 end
             endcase
@@ -164,40 +297,105 @@ module uxnProcessor (
             //     // opcode = IR[INSTRUCTIONWIDTH -3 -1: INSTRUCTIONWIDTH -OPCODEWIDTH -1];
             //     // intermediate = IR[INSTRUCTIONWIDTH -OPCODEWIDTH -1:0];
             // end
-            EXECUTE: begin
+            EXECUTE: begin  // ALU operation happens in combinational logic
                 case (opcode)
-                    BRK:    // Ends the evalutation of the current vector. This opcode has no modes.
+                    BRK:    begin  // Ends the evalutation of the current vector. This opcode has no modes.
                         ;
-                    INC:    // Increments the value at the top of the stack, by 1.
+                    end
+                    INC:    begin  // Increments the value at the top of the stack, by 1.
                         ALUResult = workingStack[SP-2] + 8'd1;
-                    POP:    // Removes the value at the top of the stack.
+                    end
+                    POP:    begin  // Removes the value at the top of the stack.
                         ;
-                    NIP:    // Removes the second value from the stack. This is practical to convert a short into a byte.
+                    end
+                    NIP:    begin  // Removes the second value from the stack. This is practical to convert a short into a byte.
                         ;
-                    SWP:    // Exchanges the first and second values at the top of the stack.
+                    end
+                    SWP:    begin  // Exchanges the first and second values at the top of the stack.
                         ;
-                    ROT:    // Rotates three values at the top of the stack, to the left, wrapping around.
+                    end
+                    ROT:    begin  // Rotates three values at the top of the stack, to the left, wrapping around.
                         ;
-                    DUP:    // Duplicates the value at the top of the stack.
+                    end
+                    DUP:    begin  // Duplicates the value at the top of the stack.
                         ;
-                    OVR:    // Duplicates the second value at the top of the stack.
+                    end
+                    OVR:    begin  // Duplicates the second value at the top of the stack.
                         ;
-                    EQU:    // Pushes 01 to the stack if the two values at the top of the stack are equal, 00 otherwise.
+                    end
+                    EQU:    begin  // Pushes 01 to the stack if the two values at the top of the stack are equal, 00 otherwise.
                         ALUResult = (workingStack[SP-1] == workingStack[SP-2]) ? 8'h01 : 8'h00;
-                    NEQ:    // Pushes 01 to the stack if the two values at the top of the stack are not equal, 00 otherwise.
+                    end
+                    NEQ:    begin  // Pushes 01 to the stack if the two values at the top of the stack are not equal, 00 otherwise.
                         ALUResult = (workingStack[SP-1] != workingStack[SP-2]) ? 8'h01 : 8'h00;
-                    GTH:    // Pushes 01 to the stack if the second value at the top of the stack is greater than the value at the top of the stack, 00 otherwise.
+                    end
+                    GTH:    begin  // Pushes 01 to the stack if the second value at the top of the stack is greater than the value at the top of the stack, 00 otherwise.
                         ALUResult = (workingStack[SP-2] > workingStack[SP-1]) ? 8'h01 : 8'h00;
-                    LTH:    // Pushes 01 to the stack if the second value at the top of the stack is lesser than the value at the top of the stack, 00 otherwise.
+                    end
+                    LTH:    begin  // Pushes 01 to the stack if the second value at the top of the stack is lesser than the value at the top of the stack, 00 otherwise.
                         ALUResult = (workingStack[SP-2] < workingStack[SP-1]) ? 8'h01 : 8'h00;
-                    JMP:    // Moves the PC by a relative distance equal to the signed byte on the top of the stack, or to an absolute address in short mode.
+                    end
+                    JMP:    begin  // Moves the PC by a relative distance equal to the signed byte on the top of the stack, or to an absolute address in short mode.
                         ALUResult = PC + workingStack[SP-1];
-                    JCN:    // If the byte preceeding the address is not 00, moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
+                    end
+                    JCN:    begin  // If the byte preceeding the address is not 00, moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
                         ;
-                    JSR:    // Pushes the PC to the return-stack and moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
+                    end
+                    JSR:    begin  // Pushes the PC to the return-stack and moves the PC by a signed value equal to the byte on the top of the stack, or to an absolute address in short mode.
                         ;
-                    STH:    // Moves the value at the top of the stack to the return stack. Note that with the r-mode, the stacks are exchanged and the value is moved from the return stack to the working stack.
+                    end
+                    STH:    begin  // Moves the value at the top of the stack to the return stack. Note that with the r-mode, the stacks are exchanged and the value is moved from the return stack to the working stack.
                         ;
+                    end
+                    LDZ:    begin  // Pushes the value at an address within the first 256 bytes of memory, to the top of the stack.
+                        ;
+                    end
+                    STZ:    begin  // Writes a value to an address within the first 256 bytes of memory.
+                        ;
+                    end
+                    LDR:    begin  // Pushes a value at a relative address in relation to the PC, within a range between -128 and +127 bytes, to the top of the stack.
+                        ;
+                    end
+                    STR:    begin  // Writes a value to a relative address in relation to the PC, within a range between -128 and +127 bytes.
+                        ;
+                    end
+                    LDA:    begin  // Pushes the value at a absolute address, to the top of the stack.
+                        ;
+                    end
+                    STA:    begin  // Writes a value to a absolute address.
+                        ;
+                    end
+                    DEI:    begin  // Pushes a value from the device page, to the top of the stack. The target device might capture the reading to trigger an I/O event.
+                        ;
+                    end
+                    DEO:    begin  // Writes a value to the device page. The target device might capture the writing to trigger an I/O event.
+                        ;
+                    end
+                    ADD:    begin  // Pushes the sum of the two values at the top of the stack.
+                        ALUResult = workingStack[SP-1] + workingStack[SP-2];
+                    end
+                    SUB:    begin  // Pushes the difference of the first value minus the second, to the top of the stack.
+                        ALUResult = workingStack[SP-1] - workingStack[SP-2];
+                    end
+                    MUL:    begin  // Pushes the product of the first and second values at the top of the stack.
+                        ALUResult = workingStack[SP-1] * workingStack[SP-2];
+                    end
+                    DIV:    begin  // Pushes the quotient of the first value over the second, to the top of the stack. A division by zero pushes zero on the stack. The rounding direction is toward zero.
+                        ALUResult = workingStack[SP-1] / workingStack[SP-2];
+                    end
+                    AND:    begin  // Pushes the result of the bitwise operation AND, to the top of the stack.
+                        ALUResult = workingStack[SP-1] & workingStack[SP-2];
+                    end
+                    ORA:    begin  // Pushes the result of the bitwise operation OR, to the top of the stack.
+                        ALUResult = workingStack[SP-1] | workingStack[SP-2];
+                    end
+                    EOR:    begin  // Pushes the result of the bitwise operation XOR, to the top of the stack.
+                        ALUResult = workingStack[SP-1] ^ workingStack[SP-2];
+                    end
+                    SFT:    begin  // Shifts the bits of the second value of the stack to the left or right, depending on the control value at the top of the stack. The high nibble of the control value indicates how many bits to shift left, and the low nibble how many bits to shift right. The rightward shift is done first.
+                        // Low nibble are the bits 0-3; high nibble are bits 4-7.
+                        ALUResult = (workingStack[SP-2] >> workingStack[SP-1][3:0]) << workingStack[SP-1][7:4];
+                    end
                 endcase
                 nextState = UPDATE;
             end
