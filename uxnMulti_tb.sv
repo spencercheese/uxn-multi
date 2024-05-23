@@ -16,11 +16,12 @@ module uxnProcessor_tb;
         forever #5 clk = ~clk;  // Toggle clock every 5 time units
     end
 
-    localparam [OPCODEWIDTH:0] ADD = 8'h01, SUB = 8'h02, MUL = 8'h03, DIV = 8'h04, MOD = 8'h05;   // Arthimetic
-    localparam [OPCODEWIDTH:0] AND = 8'h10, OR = 8'h11, XOR = 8'h12, NOT = 8'h13;                 // Conditionals
-    localparam [OPCODEWIDTH:0] LOAD = 8'h20, STORE = 8'h21, PUSH = 8'h22, POP = 8'h23;            // Memory
-    localparam [OPCODEWIDTH:0] JUMP = 8'h30, JZ = 8'h31, JNZ = 8'h32, CALL = 8'h33, RET = 8'h34;  // Jumps
-    localparam [OPCODEWIDTH:0] MOVE = 8'h40, SWAP = 8'h41, CMP = 8'h42, IN = 8'h50, OUT = 8'h51, NOP = 8'h60, HLT = 8'h70;
+        localparam [7:0] ADD = 8'h18, SUB = 8'h19, MUL = 8'h1A, DIV = 8'h1B, MOD = 8'h1C;   // Arithmetic
+    localparam [7:0] AND = 8'h28, ORA = 8'h29, EOR = 8'h2A, SFT = 8'h2B;                // Bitwise
+    localparam [7:0] JMP = 8'h50, JNZ = 8'h51, JSR = 8'h52, RTS = 8'h60;                // Control flow
+    localparam [7:0] LDZ = 8'h70, STZ = 8'h71, LDA = 8'h72, STA = 8'h73;                // Memory access
+    localparam [7:0] DEI = 8'h74, DEO = 8'h75;                                          // Device IO
+    localparam [7:0] NOP = 8'h00, LIT = 8'h80, BRK = 8'hFF;  
 
     
     // Test sequence
@@ -83,7 +84,59 @@ module uxnProcessor_tb;
         #50;  // Wait for the operation to complete
         assert (data_out == 1'b0) else $display("Test NOT 1 Failed!");
 
-        
+        // Test ORA operation
+        instruction = {ORA, 8'd0, 8'd1};  // Example: ORA operation with operands 0 and 1
+        #50;  // Wait for the operation to complete
+        assert (data_out == 1) else $fatal("Test 0 OR 1 Failed!");
+
+        // Test EOR operation
+        instruction = {EOR, 8'd1, 8'd1};  // Example: EOR operation with operands 1 and 1
+        #50;  // Wait for the operation to complete
+        assert (data_out == 0) else $fatal("Test 1 XOR 1 Failed!");
+
+        // Test SFT operation (shifting left by 1)
+        instruction = {SFT, 8'd2, 8'd1};  // Example: SFT operation on operand 2 by 1 bit (left shift)
+        #50;  // Wait for the operation to complete
+        assert (data_out == 4) else $fatal("Test SFT 2 by 1 Failed!");
+
+        // Test JMP operation
+        instruction = {JMP, 8'd5};  // Example: JMP to address 5
+        #50;  // Wait for the operation to complete
+        // Here we would check if the PC (program counter) has correctly jumped to address 5
+
+        // Test JNZ operation
+        instruction = {JNZ, 8'd1};  // Example: JNZ to address 1 if top of stack is non-zero
+        #50;  // Wait for the operation to complete
+        // Here we would check if the PC has correctly jumped based on condition
+
+        // Test JSR and RTS operations
+        instruction = {JSR, 8'd10};  // Example: JSR to address 10 (call subroutine)
+        #50;  // Wait for the operation to complete
+        // Check if the subroutine was called correctly
+        instruction = {RTS};  // Example: RTS (return from subroutine)
+        #50;  // Wait for the operation to complete
+        // Check if the return was correctly handled
+
+        // Test LDZ operation
+        instruction = {LDZ, 8'd4};  // Example: LDZ to load data from zero-page address 4
+        #50;  // Wait for the operation to complete
+        // Check if the data was loaded correctly
+
+        // Test STZ operation
+        instruction = {STZ, 8'd4, 8'd2};  // Example: STZ to store data to zero-page address 4
+        #50;  // Wait for the operation to complete
+        // Check if the data was stored correctly
+
+        // Test NOP operation
+        instruction = {NOP};  // Example: NOP (no operation)
+        #50;  // Wait for the operation to complete
+        // Ensure no changes occur in the state
+
+        // Test BRK operation
+        instruction = {BRK};  // Example: BRK (break/halt)
+        #50;  // Wait for the operation to complete
+        // Ensure the processor halts or handles the break correctly
+
         #100;
         $finish;
     end
